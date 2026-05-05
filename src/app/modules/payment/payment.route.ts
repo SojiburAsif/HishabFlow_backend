@@ -8,6 +8,12 @@ import { confirmPaymentSchema, initiatePaymentSchema } from "./payment.validatio
 
 const router = Router();
 
+// Webhook route (no auth needed, raw body)
+router.post("/webhook", PaymentController.handleStripeWebhookEvent);
+// Stripe redirect targets
+router.get("/success", PaymentController.paymentSuccess);
+router.get("/cancel", PaymentController.paymentCancel);
+
 router.post("/initiate", checkAuth(Role.SHOP_OWNER), validateRequest(initiatePaymentSchema), PaymentController.initiatePayment);
 router.post("/confirm", checkAuth(Role.SHOP_OWNER), validateRequest(confirmPaymentSchema), PaymentController.confirmPayment);
 

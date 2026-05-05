@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const initiateCheckoutSchema = z.object({
+  body: z.object({
+    planId: z.string().min(1, "Plan ID is required"),
+    shopName: z.string().min(1, "Shop name is required"),
+    image: z.string().url("Shop image must be a valid URL").optional(),
+    description: z.string().optional(),
+  }),
+});
+
 export const createShopSchema = z.object({
   body: z.object({
     shopName: z.string().min(1, "Shop name is required"),

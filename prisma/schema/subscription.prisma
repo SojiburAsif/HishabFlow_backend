@@ -8,6 +8,9 @@ model SubscriptionPlan {
     durationDays   Int
     maxStaff       Int                     @default(1)
     maxProducts    Int                     @default(100)
+    maxInvoices    Int                     @default(-1)
+    maxReports     Boolean                 @default(false)
+    maxDiscounts   Int                     @default(0)
     features       Json?
     isActive       Boolean                 @default(true)
     shops          Shop[]
@@ -30,6 +33,9 @@ model ShopSubscription {
     canceledAt       DateTime?
     autoRenew        Boolean            @default(false)
     paymentReference String?
+    transactionId    String?            @unique
+    stripeEventId    String?            @unique
+    stripeSessionId  String?
     amountPaid       Decimal?           @db.Decimal(12, 2)
     note             String?
     createdAt        DateTime           @default(now())
@@ -38,5 +44,7 @@ model ShopSubscription {
     @@index([shopId])
     @@index([planId])
     @@index([status])
+    @@index([transactionId])
+    @@index([stripeEventId])
     @@map("shop_subscription")
 }

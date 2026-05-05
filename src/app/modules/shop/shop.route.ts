@@ -4,11 +4,17 @@ import { Role } from "../../../generated/prisma/enums";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { checkAuth } from "../../middlewares/checkAuth";
 import { ShopController } from "./shop.controller";
-import { createShopSchema } from "./shop.validation";
+import { createShopSchema, initiateCheckoutSchema } from "./shop.validation";
 
 const router = Router();
 
+// Initiate Stripe checkout for shop creation
+router.post("/checkout", checkAuth(Role.SHOP_OWNER), validateRequest(initiateCheckoutSchema), ShopController.initiateShopCheckout);
+
+// Create shop after payment confirmation (legacy - kept for backward compatibility)
 router.post("/buy", checkAuth(Role.SHOP_OWNER), validateRequest(createShopSchema), ShopController.createShop);
+
+// Get current user's shop
 router.get("/me", checkAuth(Role.SHOP_OWNER), ShopController.getMyShop);
 
 export const ShopRoutes = router;

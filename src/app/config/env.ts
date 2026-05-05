@@ -16,6 +16,10 @@ interface EnvConfig {
     REFRESH_TOKEN_EXPIRES_IN: string;
     BETTER_AUTH_SESSION_TOKEN_EXPIRES_IN: string;
     BETTER_AUTH_SESSION_TOKEN_UPDATE_AGE: string;
+    STRIPE: {
+        STRIPE_SECRET_KEY?: string;
+        STRIPE_WEBHOOK_SECRET?: string;
+    }
 }
 
 
@@ -26,6 +30,8 @@ const loadEnvVariables = (): EnvConfig => {
         'DATABASE_URL',
         'BETTER_AUTH_SECRET',
         'BETTER_AUTH_URL',
+        'STRIPE_SECRET_KEY',
+        'STRIPE_WEBHOOK_SECRET',
     ]
 
     requireEnvVariable.forEach((variable) => {
@@ -47,6 +53,10 @@ const loadEnvVariables = (): EnvConfig => {
         REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN ?? '7d',
         BETTER_AUTH_SESSION_TOKEN_EXPIRES_IN: process.env.BETTER_AUTH_SESSION_TOKEN_EXPIRES_IN ?? '1d',
         BETTER_AUTH_SESSION_TOKEN_UPDATE_AGE: process.env.BETTER_AUTH_SESSION_TOKEN_UPDATE_AGE ?? '12h',
+        STRIPE: {
+            STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+            STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+        }
     }
 }
 
