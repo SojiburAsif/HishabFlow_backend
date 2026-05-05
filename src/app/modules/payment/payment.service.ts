@@ -7,6 +7,7 @@ import { Role } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { envVars } from "../../config/env";
 import { stripe } from "../../config/stripe.config";
+import { NotificationService } from "../notification/notification.service";
 
 interface IAuthenticatedUser {
     userId: string;
@@ -33,6 +34,22 @@ interface IConfirmPaymentPayload {
     paymentReference: string;
     planId: string;
 }
+
+const notifyPlanPurchase = async (shopId: string, planName: string) => {
+    try {
+        await NotificationService.notifyPlanPurchased(shopId, planName);
+    } catch (error) {
+        console.error("Failed to dispatch plan purchase notification:", error);
+    }
+};
+
+const notifyShopCreated = async (shopName: string, ownerName: string, ownerEmail: string) => {
+    try {
+        await NotificationService.notifyAdminNewShop(shopName, ownerName, ownerEmail);
+    } catch (error) {
+        console.error("Failed to dispatch new shop notification:", error);
+    }
+};
 
 const initiatePayment = async (payload: IInitiatePaymentPayload, shopId: string) => {
     try {
@@ -131,6 +148,8 @@ const confirmPayment = async (payload: IConfirmPaymentPayload) => {
             },
         });
 
+        await notifyPlanPurchase(shopId, plan.name);
+
         return {
             success: true,
             subscription,
@@ -172,6 +191,7 @@ const markBookingAsPaidFromSession = async (session: any, eventId: string) => {
         });
 
         let subscription;
+        const shouldNotify = !existing;
         if (existing) {
             subscription = await prisma.shopSubscription.update({
                 where: { id: existing.id },
@@ -209,6 +229,10 @@ const markBookingAsPaidFromSession = async (session: any, eventId: string) => {
             },
         });
 
+        if (shouldNotify) {
+            await notifyPlanPurchase(shopId, plan.name);
+        }
+
         return { success: true, subscription };
     } catch (error) {
         console.error("Error marking payment as paid from session:", error);
@@ -228,7 +252,7 @@ const handleShopCreationPayment = async (session: any, eventId: string, metadata
 
         const ownerProfile = await prisma.shopOwnerProfile.findUnique({
             where: { userId: metadata.userId! },
-            include: { shop: true },
+            include: { shop: true, user: true },
         });
 
         if (!ownerProfile) {
@@ -294,6 +318,9 @@ const handleShopCreationPayment = async (session: any, eventId: string, metadata
             return { shop, subscription };
         });
 
+        await notifyShopCreated(result.shop.shopName, ownerProfile.user.name, ownerProfile.user.email);
+        await notifyPlanPurchase(result.shop.id, plan.name);
+
         return { success: true, ...result };
     } catch (error) {
         console.error("Error handling shop creation payment:", error);
@@ -348,6 +375,8 @@ const markBookingAsPaidByMetadata = async (
                 isDashboardLocked: false,
             },
         });
+
+        await notifyPlanPurchase(shopId, plan.name);
 
         return { success: true, subscription };
     } catch (error) {

@@ -86,6 +86,15 @@ const initiatePayment = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
+  // Ensure user's email is verified before allowing subscription purchases
+  if (!req.user?.emailVerified) {
+    return sendResponse(res, {
+      httpStatusCode: status.FORBIDDEN,
+      success: false,
+      message: "Please verify your email before purchasing a subscription",
+    });
+  }
+
   const result = await PaymentService.initiatePayment(req.body, shopId);
 
   sendResponse(res, {

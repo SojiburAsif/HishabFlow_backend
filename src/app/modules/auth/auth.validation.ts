@@ -20,3 +20,25 @@ export const loginUserSchema = z.object({
         password: z.string().min(1, "Password is required"),
     }),
 });
+
+export const resendVerificationEmailSchema = z.object({
+    body: z.object({
+        email: z.string().email("Valid email is required"),
+        name: z.string().min(1, "Name is required").optional(),
+    }),
+});
+
+export const verifyEmailOtpSchema = z.object({
+    body: z.object({
+        email: z.string().email("Valid email is required"),
+        token: z.string().min(4, "OTP is required"),
+    }),
+});
+
+export const zResetConfirmSchema = z.object({
+    body: z.object({
+        email: z.string().email("Valid email is required"),
+        token: z.string().min(6, "Reset token is required"),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+    }),
+});

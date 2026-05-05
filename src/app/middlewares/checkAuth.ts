@@ -132,6 +132,9 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                 throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! User is deleted.');
             }
 
+            // Allow access even if email not verified. Specific actions (like subscriptions)
+            // will enforce verification where needed. We still surface emailVerified on req.user.
+
             if (user.status !== UserStatus.ACTIVE) {
                 throw new AppError(status.FORBIDDEN, 'Unauthorized access! User is not active.');
             }
@@ -193,7 +196,8 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                 role: user.role,
                 email: user.email,
                 shopId,
-            };
+                emailVerified: !!user.emailVerified,
+            } as any;
         };
 
         if (sessionToken) {

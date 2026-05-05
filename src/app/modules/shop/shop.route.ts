@@ -5,6 +5,7 @@ import { validateRequest } from "../../middlewares/validateRequest";
 import { checkAuth } from "../../middlewares/checkAuth";
 import { ShopController } from "./shop.controller";
 import { createShopSchema, initiateCheckoutSchema, updateMyShopSchema } from "./shop.validation";
+import { createStaffAccountSchema } from "../staff/staff.validation";
 
 const router = Router();
 
@@ -17,5 +18,7 @@ router.post("/buy", checkAuth(Role.SHOP_OWNER), validateRequest(createShopSchema
 // Get current user's shop
 router.get("/me", checkAuth(Role.SHOP_OWNER), ShopController.getMyShop);
 router.patch("/me", checkAuth(Role.SHOP_OWNER), validateRequest(updateMyShopSchema), ShopController.updateMyShop);
+router.post("/me/staff", checkAuth(Role.SHOP_OWNER), validateRequest(createStaffAccountSchema), ShopController.createStaffAccount);
+router.get("/me/staff", checkAuth(Role.SHOP_OWNER), ShopController.getShopStaff);
 
 export const ShopRoutes = router;

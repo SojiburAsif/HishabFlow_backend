@@ -4,6 +4,8 @@ import status from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { ShopService } from "./shop.service";
+import { StaffService } from "../staff/staff.service";
+import { createStaffAccountSchema } from "../staff/staff.validation";
 
 // Initiate shop creation with payment
 const initiateShopCheckout = catchAsync(async (req: Request, res: Response) => {
@@ -50,9 +52,33 @@ const updateMyShop = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const createStaffAccount = catchAsync(async (req: Request, res: Response) => {
+  const result = await StaffService.createStaffAccount(req.user!, req.body);
+
+  sendResponse(res, {
+    httpStatusCode: status.CREATED,
+    success: true,
+    message: "Staff account created successfully",
+    data: result,
+  });
+});
+
+const getShopStaff = catchAsync(async (req: Request, res: Response) => {
+  const result = await StaffService.listStaff(req.user!);
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Shop staff retrieved successfully",
+    data: result,
+  });
+});
+
 export const ShopController = {
   initiateShopCheckout,
   createShop,
   getMyShop,
   updateMyShop,
+  createStaffAccount,
+  getShopStaff,
 };

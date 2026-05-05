@@ -8,6 +8,7 @@ declare global {
                 role: Role;
                 email: string;
                 shopId?: string;
+                emailVerified?: boolean;
             };
         }
     }
