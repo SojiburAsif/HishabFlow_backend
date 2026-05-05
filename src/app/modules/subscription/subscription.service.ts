@@ -235,6 +235,82 @@ const updateShopSubscriptionStatus = async (user: IAuthenticatedUser, subscripti
   return updated;
 };
 
+const getMySubscription = async (user: IAuthenticatedUser) => {
+  let shopId = user.shopId;
+
+  if (!shopId && user.role === Role.SHOP_OWNER) {
+    const ownerProfile = await prisma.shopOwnerProfile.findUnique({
+      where: { userId: user.userId },
+      include: { shop: true },
+    });
+
+    shopId = ownerProfile?.shop?.id;
+  }
+
+  if (!shopId) {
+    throw new AppError(status.NOT_FOUND, "Shop not found for this user");
+  }
+
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    const shop = await tx.shop.findUnique({ where: { id: shopId } });
+    if (!shop) {
+      throw new AppError(status.NOT_FOUND, "Shop not found");
+    }
+
+    const isExpiredByDate =
+      (shop.subscriptionEndsAt && shop.subscriptionEndsAt.getTime() <= now.getTime()) ||
+      (shop.subscriptionStatus === SubscriptionStatus.TRIAL &&
+        shop.trialEndsAt &&
+        shop.trialEndsAt.getTime() <= now.getTime());
+
+    if (isExpiredByDate) {
+      await tx.shop.update({
+        where: { id: shopId },
+        data: {
+          subscriptionStatus: SubscriptionStatus.EXPIRED,
+          isDashboardLocked: true,
+        },
+      });
+
+      await tx.shopSubscription.updateMany({
+        where: {
+          shopId,
+          status: {
+            in: [SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
+          },
+          endsAt: {
+            lte: now,
+          },
+        },
+        data: {
+          status: SubscriptionStatus.EXPIRED,
+        },
+      });
+    }
+  });
+
+  const subscriptions = await prisma.shopSubscription.findMany({
+    where: { shopId },
+    orderBy: { createdAt: "desc" },
+    include: { plan: true },
+  });
+
+  const shop = await prisma.shop.findUnique({
+    where: { id: shopId },
+    include: {
+      currentPlan: true,
+    },
+  });
+
+  return {
+    shop,
+    currentSubscription: subscriptions[0] ?? null,
+    history: subscriptions,
+  };
+};
+
 export const SubscriptionService = {
   // Public
   getPublicPlans,
@@ -245,6 +321,7 @@ export const SubscriptionService = {
   updateSubscriptionPlan,
   getSubscriptionPlan,
   deleteSubscriptionPlan,
+  getMySubscription,
   getAllShopSubscriptions,
   updateShopSubscriptionStatus,
 };

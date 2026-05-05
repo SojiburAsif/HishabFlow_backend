@@ -29,6 +29,15 @@ interface IInitiateShopCheckoutPayload {
   description?: string;
 }
 
+interface IUpdateMyShopPayload {
+  shopName?: string;
+  image?: string;
+  description?: string;
+  currencyCode?: string;
+  timezone?: string;
+  lowStockThreshold?: number;
+}
+
 const normalizeSlug = (value: string) =>
   value
     .trim()
@@ -197,6 +206,59 @@ const getMyShop = async (user: IAuthenticatedUser) => {
   return ownerProfile.shop;
 };
 
+const updateMyShop = async (user: IAuthenticatedUser, payload: IUpdateMyShopPayload) => {
+  if (user.role !== Role.SHOP_OWNER) {
+    throw new AppError(status.FORBIDDEN, "Only shop owners can update shop");
+  }
+
+  const ownerProfile = await prisma.shopOwnerProfile.findUnique({
+    where: { userId: user.userId },
+    include: { shop: true },
+  });
+
+  if (!ownerProfile?.shop) {
+    throw new AppError(status.NOT_FOUND, "Shop not found for this owner");
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const shop = await tx.shop.update({
+      where: { id: ownerProfile.shop!.id },
+      data: {
+        ...(payload.shopName
+          ? {
+              shopName: payload.shopName,
+              slug: normalizeSlug(payload.shopName),
+            }
+          : {}),
+        ...(payload.image ? { image: payload.image } : {}),
+        ...(payload.description ? { description: payload.description } : {}),
+        ...(payload.currencyCode ? { currencyCode: payload.currencyCode } : {}),
+        ...(payload.timezone ? { timezone: payload.timezone } : {}),
+        ...(payload.lowStockThreshold !== undefined
+          ? { lowStockThreshold: payload.lowStockThreshold }
+          : {}),
+      },
+      include: {
+        currentPlan: true,
+        subscriptions: true,
+      },
+    });
+
+    if (payload.shopName) {
+      await tx.shopOwnerProfile.update({
+        where: { id: ownerProfile.id },
+        data: {
+          preferredShopName: payload.shopName,
+        },
+      });
+    }
+
+    return shop;
+  });
+
+  return updated;
+};
+
 // Create shop from Stripe payment confirmation (called by webhook)
 const createShopFromPayment = async (userId: string, sessionMetadata: any) => {
   const { planId, shopName, image, description } = sessionMetadata;
@@ -281,5 +343,6 @@ export const ShopService = {
   initiateShopCheckout,
   createShop,
   getMyShop,
+  updateMyShop,
   createShopFromPayment,
 };

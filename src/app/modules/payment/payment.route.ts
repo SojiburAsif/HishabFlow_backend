@@ -16,5 +16,7 @@ router.get("/cancel", PaymentController.paymentCancel);
 
 router.post("/initiate", checkAuth(Role.SHOP_OWNER), validateRequest(initiatePaymentSchema), PaymentController.initiatePayment);
 router.post("/confirm", checkAuth(Role.SHOP_OWNER), validateRequest(confirmPaymentSchema), PaymentController.confirmPayment);
+router.get("/my", checkAuth(Role.SHOP_OWNER, Role.STAFF), PaymentController.getMyPayments);
+router.get("/all", checkAuth(Role.SUPER_ADMIN), PaymentController.getAllPayments);
 
 export const PaymentRoutes = router;

@@ -18,6 +18,7 @@ router.post("/plans", checkAuth(Role.SUPER_ADMIN), validateRequest(createSubscri
 router.get("/plans/:id", checkAuth(Role.SUPER_ADMIN), SubscriptionController.getSubscriptionPlan);
 router.patch("/plans/:id", checkAuth(Role.SUPER_ADMIN), validateRequest(updateSubscriptionPlanSchema), SubscriptionController.updateSubscriptionPlan);
 router.delete("/plans/:id", checkAuth(Role.SUPER_ADMIN), SubscriptionController.deleteSubscriptionPlan);
+router.get("/me", checkAuth(Role.SHOP_OWNER, Role.STAFF), SubscriptionController.getMySubscription);
 router.get("/records", checkAuth(Role.SUPER_ADMIN), SubscriptionController.getAllShopSubscriptions);
 router.patch("/records/:id", checkAuth(Role.SUPER_ADMIN), validateRequest(updateSubscriptionStatusSchema), SubscriptionController.updateShopSubscriptionStatus);
 

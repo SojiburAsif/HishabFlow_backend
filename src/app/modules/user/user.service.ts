@@ -21,6 +21,27 @@ interface IAuthenticatedUser {
     shopId?: string;
 }
 
+const getMyProfile = async (user: IAuthenticatedUser) => {
+    const profile = await prisma.user.findUnique({
+        where: { id: user.userId },
+        include: {
+            shopOwnerProfile: {
+                include: { shop: true },
+            },
+            superAdminProfile: true,
+            staffProfile: {
+                include: { shop: true },
+            },
+        },
+    });
+
+    if (!profile) {
+        throw new AppError(status.NOT_FOUND, "User not found");
+    }
+
+    return profile;
+};
+
 const normalizeSlug = (value: string) =>
     value
         .trim()
@@ -64,9 +85,13 @@ const updateMyProfile = async (user: IAuthenticatedUser, payload: IUpdateMyProfi
                     preferredShopName: payload.shopName ?? payload.preferredShopName ?? payload.name ?? currentUser.name,
                 },
                 update: {
-                    displayName: payload.displayName ?? payload.name,
-                    phone: payload.phone,
-                    preferredShopName: payload.shopName ?? payload.preferredShopName,
+                    ...(payload.displayName || payload.name
+                        ? { displayName: payload.displayName ?? payload.name }
+                        : {}),
+                    ...(payload.phone ? { phone: payload.phone } : {}),
+                    ...(payload.shopName || payload.preferredShopName
+                        ? { preferredShopName: payload.shopName ?? payload.preferredShopName }
+                        : {}),
                 },
                 include: { shop: true },
             });
@@ -166,6 +191,7 @@ const getAllUsers = async () => {
 };
 
 export const UserService = {
+    getMyProfile,
     updateMyProfile,
     getAllUsers,
 };

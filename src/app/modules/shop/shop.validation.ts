@@ -19,3 +19,14 @@ export const createShopSchema = z.object({
     subscriptionStartsAt: z.string().datetime().optional(),
   }),
 });
+
+export const updateMyShopSchema = z.object({
+  body: z.object({
+    shopName: z.string().min(1, "Shop name is required").optional(),
+    image: z.string().url("Shop image must be a valid URL").optional(),
+    description: z.string().min(1, "Description is required").optional(),
+    currencyCode: z.string().min(3, "Currency code is required").optional(),
+    timezone: z.string().min(2, "Timezone is required").optional(),
+    lowStockThreshold: z.number().int().min(0).optional(),
+  }),
+});

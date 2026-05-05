@@ -24,36 +24,84 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
             }
             | undefined;
 
-        const isSubscriptionLocked = (shop: {
+        const getSubscriptionLockState = (shop: {
+            id: string;
             status: ShopStatus;
             subscriptionStatus: SubscriptionStatus;
             trialEndsAt: Date | null;
             subscriptionEndsAt: Date | null;
             isDashboardLocked: boolean;
         }) => {
+            const now = new Date();
+            const isTrialExpired =
+                shop.subscriptionStatus === SubscriptionStatus.TRIAL &&
+                !!shop.trialEndsAt &&
+                shop.trialEndsAt.getTime() <= now.getTime();
+            const isSubscriptionExpired =
+                !!shop.subscriptionEndsAt &&
+                shop.subscriptionEndsAt.getTime() <= now.getTime();
+
+            if (isTrialExpired || isSubscriptionExpired) {
+                return {
+                    isLocked: true,
+                    shouldPersistExpiry: shop.subscriptionStatus !== SubscriptionStatus.EXPIRED || !shop.isDashboardLocked,
+                };
+            }
+
             if (shop.isDashboardLocked) {
-                return true;
+                return {
+                    isLocked: true,
+                    shouldPersistExpiry: false,
+                };
             }
 
             if (shop.status === ShopStatus.SUSPENDED || shop.status === ShopStatus.CLOSED) {
-                return true;
+                return {
+                    isLocked: true,
+                    shouldPersistExpiry: false,
+                };
             }
 
             if (shop.subscriptionStatus === SubscriptionStatus.SUSPENDED || shop.subscriptionStatus === SubscriptionStatus.CANCELED || shop.subscriptionStatus === SubscriptionStatus.EXPIRED) {
-                return true;
+                return {
+                    isLocked: true,
+                    shouldPersistExpiry: false,
+                };
             }
 
+            return {
+                isLocked: false,
+                shouldPersistExpiry: false,
+            };
+        };
+
+        const persistExpiredLock = async (shopId: string) => {
             const now = new Date();
 
-            if (shop.subscriptionStatus === SubscriptionStatus.TRIAL && shop.trialEndsAt && shop.trialEndsAt.getTime() <= now.getTime()) {
-                return true;
-            }
+            await prisma.$transaction(async (tx) => {
+                await tx.shop.update({
+                    where: { id: shopId },
+                    data: {
+                        subscriptionStatus: SubscriptionStatus.EXPIRED,
+                        isDashboardLocked: true,
+                    },
+                });
 
-            if (shop.subscriptionEndsAt && shop.subscriptionEndsAt.getTime() <= now.getTime()) {
-                return true;
-            }
-
-            return false;
+                await tx.shopSubscription.updateMany({
+                    where: {
+                        shopId,
+                        status: {
+                            in: [SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
+                        },
+                        endsAt: {
+                            lte: now,
+                        },
+                    },
+                    data: {
+                        status: SubscriptionStatus.EXPIRED,
+                    },
+                });
+            });
         };
 
         const resolveAuthenticatedUser = async (userId: string) => {
@@ -97,7 +145,12 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
 
                 const shop = user.shopOwnerProfile.shop;
                 if (shop) {
-                    if (isSubscriptionLocked(shop)) {
+                    const lockState = getSubscriptionLockState(shop);
+                    if (lockState.shouldPersistExpiry) {
+                        await persistExpiredLock(shop.id);
+                    }
+
+                    if (lockState.isLocked) {
                         throw new AppError(status.FORBIDDEN, 'Your subscription has expired or is inactive. Please renew to access the dashboard.');
                     }
 
@@ -119,7 +172,12 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                     throw new AppError(status.FORBIDDEN, 'Unauthorized access! Staff account is not assigned to a shop.');
                 }
 
-                if (isSubscriptionLocked(shop)) {
+                const lockState = getSubscriptionLockState(shop);
+                if (lockState.shouldPersistExpiry) {
+                    await persistExpiredLock(shop.id);
+                }
+
+                if (lockState.isLocked) {
                     throw new AppError(status.FORBIDDEN, 'Your subscription has expired or is inactive. Please renew to access the dashboard.');
                 }
 

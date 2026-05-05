@@ -39,8 +39,20 @@ const getMyShop = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateMyShop = catchAsync(async (req: Request, res: Response) => {
+  const result = await ShopService.updateMyShop(req.user!, req.body);
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Shop updated successfully",
+    data: result,
+  });
+});
+
 export const ShopController = {
   initiateShopCheckout,
   createShop,
   getMyShop,
+  updateMyShop,
 };

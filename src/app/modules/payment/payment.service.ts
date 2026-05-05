@@ -3,9 +3,17 @@ import type Stripe from "stripe";
 
 import AppError from "../../errorHelpers/AppError";
 import { Prisma } from "../../../generated/prisma/browser";
+import { Role } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { envVars } from "../../config/env";
 import { stripe } from "../../config/stripe.config";
+
+interface IAuthenticatedUser {
+    userId: string;
+    role: Role;
+    email: string;
+    shopId?: string;
+}
 
 interface StripeEvent {
     id: string;
@@ -369,8 +377,49 @@ const handlerStripeWebhookEvent = async (event: StripeEvent) => {
     return { processed: false, type: event.type };
 };
 
+const getMyPayments = async (user: IAuthenticatedUser) => {
+    let shopId = user.shopId;
+
+    if (!shopId && user.role === Role.SHOP_OWNER) {
+        const ownerProfile = await prisma.shopOwnerProfile.findUnique({
+            where: { userId: user.userId },
+            include: { shop: true },
+        });
+        shopId = ownerProfile?.shop?.id;
+    }
+
+    if (!shopId) {
+        throw new AppError(status.NOT_FOUND, "Shop not found for this user");
+    }
+
+    return prisma.shopSubscription.findMany({
+        where: { shopId },
+        orderBy: { createdAt: "desc" },
+        include: {
+            plan: true,
+            shop: true,
+        },
+    });
+};
+
+const getAllPayments = async (user: IAuthenticatedUser) => {
+    if (user.role !== Role.SUPER_ADMIN) {
+        throw new AppError(status.FORBIDDEN, "Only super admin can see all payments");
+    }
+
+    return prisma.shopSubscription.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+            plan: true,
+            shop: true,
+        },
+    });
+};
+
 export const PaymentService = {
     initiatePayment,
     confirmPayment,
     handlerStripeWebhookEvent,
+    getMyPayments,
+    getAllPayments,
 };

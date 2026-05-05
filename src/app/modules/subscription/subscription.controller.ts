@@ -52,6 +52,11 @@ const updateShopSubscriptionStatus = catchAsync(async (req: Request, res: Respon
   sendResponse(res, { httpStatusCode: status.OK, success: true, message: "Subscription status updated successfully", data: result });
 });
 
+const getMySubscription = catchAsync(async (req: Request, res: Response) => {
+  const result = await SubscriptionService.getMySubscription(req.user!);
+  sendResponse(res, { httpStatusCode: status.OK, success: true, message: "My subscription retrieved successfully", data: result });
+});
+
 export const SubscriptionController = {
   getPublicPlans,
   getPublicPlan,
@@ -60,6 +65,7 @@ export const SubscriptionController = {
   updateSubscriptionPlan,
   getSubscriptionPlan,
   deleteSubscriptionPlan,
+  getMySubscription,
   getAllShopSubscriptions,
   updateShopSubscriptionStatus,
 };

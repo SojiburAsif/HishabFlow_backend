@@ -107,6 +107,28 @@ const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getMyPayments = catchAsync(async (req: Request, res: Response) => {
+  const result = await PaymentService.getMyPayments(req.user!);
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "My payments retrieved successfully",
+    data: result,
+  });
+});
+
+const getAllPayments = catchAsync(async (req: Request, res: Response) => {
+  const result = await PaymentService.getAllPayments(req.user!);
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "All payments retrieved successfully",
+    data: result,
+  });
+});
+
 
 
 export const PaymentController = {
@@ -114,5 +136,7 @@ export const PaymentController = {
   paymentCancel,
   initiatePayment,
   confirmPayment,
+  getMyPayments,
+  getAllPayments,
   handleStripeWebhookEvent,
 };
