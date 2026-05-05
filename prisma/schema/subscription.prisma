@@ -1,0 +1,42 @@
+model SubscriptionPlan {
+    id             String                  @id @default(uuid())
+    code           String                  @unique
+    name           String
+    billingCycle   SubscriptionBillingCycle
+    price          Decimal                 @db.Decimal(12, 2)
+    currencyCode   String                  @default("BDT")
+    durationDays   Int
+    maxStaff       Int                     @default(1)
+    maxProducts    Int                     @default(100)
+    features       Json?
+    isActive       Boolean                 @default(true)
+    shops          Shop[]
+    subscriptions  ShopSubscription[]
+    createdAt      DateTime                @default(now())
+    updatedAt      DateTime                @updatedAt
+
+    @@map("subscription_plan")
+}
+
+model ShopSubscription {
+    id               String             @id @default(uuid())
+    shopId           String
+    shop             Shop               @relation("ShopToShopSubscription", fields: [shopId], references: [id], onDelete: Cascade)
+    planId           String
+    plan             SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+    status           SubscriptionStatus @default(TRIAL)
+    startsAt         DateTime
+    endsAt           DateTime
+    canceledAt       DateTime?
+    autoRenew        Boolean            @default(false)
+    paymentReference String?
+    amountPaid       Decimal?           @db.Decimal(12, 2)
+    note             String?
+    createdAt        DateTime           @default(now())
+    updatedAt        DateTime           @updatedAt
+
+    @@index([shopId])
+    @@index([planId])
+    @@index([status])
+    @@map("shop_subscription")
+}

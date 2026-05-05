@@ -1,0 +1,171 @@
+import status from "http-status";
+
+import { Role } from "../../../generated/prisma/enums";
+import AppError from "../../errorHelpers/AppError";
+import { prisma } from "../../lib/prisma";
+
+interface IUpdateMyProfilePayload {
+    name?: string;
+    image?: string;
+    displayName?: string;
+    phone?: string;
+    shopName?: string;
+    shopImage?: string;
+    preferredShopName?: string;
+}
+
+interface IAuthenticatedUser {
+    userId: string;
+    role: Role;
+    email: string;
+    shopId?: string;
+}
+
+const normalizeSlug = (value: string) =>
+    value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 80) || `shop-${Date.now()}`;
+
+const updateMyProfile = async (user: IAuthenticatedUser, payload: IUpdateMyProfilePayload, ipAddress?: string) => {
+    const currentUser = await prisma.user.findUnique({
+        where: { id: user.userId },
+        include: {
+            shopOwnerProfile: {
+                include: { shop: true },
+            },
+            superAdminProfile: true,
+            staffProfile: true,
+        },
+    });
+
+    if (!currentUser) {
+        throw new AppError(status.NOT_FOUND, "User not found");
+    }
+
+    const updatedUser = await prisma.$transaction(async (tx) => {
+        const userUpdate = (payload.name || payload.image) ? await tx.user.update({
+            where: { id: user.userId },
+            data: {
+                ...(payload.name ? { name: payload.name } : {}),
+                ...(payload.image ? { image: payload.image } : {}),
+            },
+        }) : currentUser;
+
+        if (currentUser.role === Role.SHOP_OWNER) {
+            const profile = await tx.shopOwnerProfile.upsert({
+                where: { userId: user.userId },
+                create: {
+                    userId: user.userId,
+                    displayName: payload.displayName ?? payload.name ?? currentUser.name,
+                    phone: payload.phone,
+                    preferredShopName: payload.shopName ?? payload.preferredShopName ?? payload.name ?? currentUser.name,
+                },
+                update: {
+                    displayName: payload.displayName ?? payload.name,
+                    phone: payload.phone,
+                    preferredShopName: payload.shopName ?? payload.preferredShopName,
+                },
+                include: { shop: true },
+            });
+
+            if (profile.shop && payload.shopName) {
+                await tx.shop.update({
+                    where: { id: profile.shop.id },
+                    data: {
+                        ...(payload.shopName ? {
+                            shopName: payload.shopName,
+                            slug: normalizeSlug(payload.shopName),
+                        } : {}),
+                        ...(payload.shopImage ? { image: payload.shopImage } : {}),
+                    },
+                });
+            } else if (profile.shop && payload.shopImage) {
+                await tx.shop.update({
+                    where: { id: profile.shop.id },
+                    data: {
+                        image: payload.shopImage,
+                    },
+                });
+            }
+        }
+
+        if (currentUser.role === Role.SUPER_ADMIN) {
+            await tx.superAdminProfile.upsert({
+                where: { userId: user.userId },
+                create: {
+                    userId: user.userId,
+                    displayName: payload.displayName ?? payload.name ?? currentUser.name,
+                    ...(ipAddress ? { ipAddress } : {}),
+                },
+                update: {
+                    displayName: payload.displayName ?? payload.name,
+                    ...(ipAddress ? { ipAddress } : {}),
+                },
+            });
+        }
+
+        if (currentUser.role === Role.STAFF) {
+            await tx.staffProfile.updateMany({
+                where: { userId: user.userId },
+                data: {
+                    displayName: payload.displayName ?? payload.name,
+                    phone: payload.phone,
+                },
+            });
+        }
+
+        return userUpdate;
+    });
+
+    return prisma.user.findUnique({
+        where: { id: updatedUser.id },
+        include: {
+            shopOwnerProfile: {
+                include: { shop: true },
+            },
+            superAdminProfile: true,
+            staffProfile: {
+                include: { shop: true },
+            },
+        },
+    });
+};
+
+const getAllUsers = async () => {
+    const users = await prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+            shopOwnerProfile: {
+                include: { shop: true },
+            },
+            superAdminProfile: true,
+            staffProfile: {
+                include: { shop: true },
+            },
+        },
+    });
+
+    // For admin-facing responses, include user's name and email inside superAdminProfile
+    return users.map((u) => {
+        if (u.superAdminProfile) {
+            return {
+                ...u,
+                superAdminProfile: {
+                    ...u.superAdminProfile,
+                    userName: u.name,
+                    userEmail: u.email,
+                },
+            };
+        }
+
+        return u;
+    });
+};
+
+export const UserService = {
+    updateMyProfile,
+    getAllUsers,
+};

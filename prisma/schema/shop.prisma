@@ -1,0 +1,32 @@
+model Shop {
+    id                   String             @id @default(uuid())
+    ownerProfileId       String             @unique
+    ownerProfile         ShopOwnerProfile   @relation("ShopOwnerToShop", fields: [ownerProfileId], references: [id], onDelete: Restrict)
+    shopName             String
+    image                String?
+    slug                 String             @unique
+    description          String?
+    status               ShopStatus         @default(PENDING)
+    subscriptionStatus   SubscriptionStatus @default(TRIAL)
+    trialEndsAt          DateTime?
+    subscriptionStartsAt DateTime?
+    subscriptionEndsAt   DateTime?
+    isDashboardLocked    Boolean            @default(false)
+    currencyCode         String             @default("BDT")
+    timezone             String             @default("Asia/Dhaka")
+    lowStockThreshold    Int                @default(5)
+    currentPlanId        String?
+    currentPlan          SubscriptionPlan?  @relation(fields: [currentPlanId], references: [id], onDelete: SetNull)
+    categories           Category[]
+    products             Product[]
+    invoices             Invoice[]
+    subscriptions        ShopSubscription[] @relation("ShopToShopSubscription")
+    stockMovements       StockMovement[]
+    staffProfiles        StaffProfile[]
+    createdAt            DateTime           @default(now())
+    updatedAt            DateTime           @updatedAt
+
+    @@index([status])
+    @@index([subscriptionStatus])
+    @@map("shop")
+}

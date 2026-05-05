@@ -1,0 +1,14 @@
+model Category {
+  id          String    @id @default(uuid())
+  shopId      String
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([shopId, name])
+  @@index([shopId])
+  @@map("category")
+}

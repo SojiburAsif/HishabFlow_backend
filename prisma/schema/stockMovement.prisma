@@ -1,0 +1,25 @@
+model StockMovement {
+  id              String            @id @default(uuid())
+  shopId          String
+  shop            Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  invoiceId       String?
+  invoice         Invoice?          @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  movementType    StockMovementType
+  quantity        Int
+  unitCost        Decimal?          @db.Decimal(12, 2)
+  unitPrice       Decimal?          @db.Decimal(12, 2)
+  balanceAfter    Int?
+  reference       String?
+  note            String?
+  createdByUserId String?
+  createdByUser   User?             @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime          @default(now())
+
+  @@index([shopId])
+  @@index([productId])
+  @@index([invoiceId])
+  @@index([movementType])
+  @@map("stock_movement")
+}

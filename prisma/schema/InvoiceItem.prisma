@@ -1,0 +1,17 @@
+model InvoiceItem {
+    id            String   @id @default(uuid())
+    invoiceId     String
+    invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+    productId     String
+    product       Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+    quantity      Int
+    purchasePrice Decimal  @db.Decimal(12, 2)
+    sellingPrice  Decimal  @db.Decimal(12, 2)
+    lineTotal     Decimal  @db.Decimal(12, 2)
+    lineProfit    Decimal  @db.Decimal(12, 2)
+    createdAt     DateTime @default(now())
+
+    @@index([invoiceId])
+    @@index([productId])
+    @@map("invoice_item")
+}
