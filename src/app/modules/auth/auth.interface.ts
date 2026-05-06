@@ -47,13 +47,14 @@ export interface ILogoutPayload {
 
 export interface IGoogleSessionUser {
     id: string;
-    role: string;
     name: string;
     email: string;
     image?: string | null;
-    status: string;
-    isDeleted: boolean;
     emailVerified: boolean;
+    // These fields will be fetched from the database as needed
+    role?: string;
+    status?: string;
+    isDeleted?: boolean;
 }
 
 export interface IGoogleSession {

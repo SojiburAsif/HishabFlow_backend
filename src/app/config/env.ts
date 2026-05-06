@@ -17,6 +17,8 @@ interface EnvConfig {
     REFRESH_TOKEN_EXPIRES_IN: string;
     BETTER_AUTH_SESSION_TOKEN_EXPIRES_IN: string;
     BETTER_AUTH_SESSION_TOKEN_UPDATE_AGE: string;
+    GOOGLE_CLIENT_ID?: string;
+    GOOGLE_CLIENT_SECRET?: string;
     EMAIL_SENDER: {
         SMTP_HOST: string;
         SMTP_PORT: string;
@@ -60,13 +62,15 @@ const loadEnvVariables = (): EnvConfig => {
         DATABASE_URL: process.env.DATABASE_URL as string,
         BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET as string,
         BETTER_AUTH_URL: process.env.BETTER_AUTH_URL as string,
-        CLIENT_URL: process.env.CLIENT_URL ?? process.env.BETTER_AUTH_URL ?? '',
+        CLIENT_URL: process.env.CLIENT_URL ?? 'http://localhost:3000',
         ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET ?? `${process.env.BETTER_AUTH_SECRET}-access`,
         REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET ?? `${process.env.BETTER_AUTH_SECRET}-refresh`,
         ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN ?? '1d',
         REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN ?? '7d',
         BETTER_AUTH_SESSION_TOKEN_EXPIRES_IN: process.env.BETTER_AUTH_SESSION_TOKEN_EXPIRES_IN ?? '1d',
         BETTER_AUTH_SESSION_TOKEN_UPDATE_AGE: process.env.BETTER_AUTH_SESSION_TOKEN_UPDATE_AGE ?? '12h',
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
         EMAIL_SENDER: {
             SMTP_HOST: process.env.EMAIL_SENDER_SMTP_HOST as string,
             SMTP_PORT: process.env.EMAIL_SENDER_SMTP_PORT as string,

@@ -353,25 +353,53 @@ const refreshTokens = async (refreshPayload: any) => {
 // Google OAuth helpers
 // ----------------------------
 const googleLoginSuccessF = async (session: IGoogleSession) => {
-    const user = session.user;
-    if (!user) throw new AppError(status.NOT_FOUND, "OAuth user not found");
+    const sessionUser = session.user;
+    if (!sessionUser) throw new AppError(status.NOT_FOUND, "OAuth user not found");
 
-    // Ensure shop owner profile exists for SHOP_OWNER role
+    // Fetch complete user from database to get role, status, etc.
+    const user = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+        include: { shopOwnerProfile: true },
+    });
+
+    if (!user) throw new AppError(status.NOT_FOUND, "User not found in database");
+
+    // Ensure shop owner profile exists and is updated with latest data
     if (user.role === Role.SHOP_OWNER) {
         await prisma.$transaction(async (tx) => {
-            const existing = await tx.shopOwnerProfile.findUnique({ where: { userId: user.id } });
+            const existing = await tx.shopOwnerProfile.findUnique({
+                where: { userId: user.id },
+            });
+
             if (!existing) {
+                // Create new profile with complete default data
                 await tx.shopOwnerProfile.create({
                     data: {
                         userId: user.id,
-                        displayName: user.name || "",
-                        preferredShopName: user.name || "",
+                        displayName: user.name || "Shop Owner",
+                        phone: null,
+                        preferredShopName: user.name || "My Shop",
+                        onboardingCompleted: false,
+                    },
+                });
+            } else {
+                // Update existing profile with latest information from Google
+                await tx.shopOwnerProfile.update({
+                    where: { userId: user.id },
+                    data: {
+                        displayName: user.name || existing.displayName,
+                        preferredShopName: user.name || existing.preferredShopName,
+                        // Keep other fields unchanged
                     },
                 });
             }
 
-            if (user.image) {
-                await tx.user.update({ where: { id: user.id }, data: { image: user.image } });
+            // Update user image if provided by Google
+            if (sessionUser.image) {
+                await tx.user.update({
+                    where: { id: user.id },
+                    data: { image: sessionUser.image },
+                });
             }
         });
     }

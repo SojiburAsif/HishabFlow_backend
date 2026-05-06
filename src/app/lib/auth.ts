@@ -3,15 +3,25 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 
 import { prisma } from "./prisma";
 import { Role, UserStatus } from "../../generated/prisma/client";
-// If your Prisma file is located elsewhere, you can change the path
+import { envVars } from "../config/env";
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql", // or "mysql", "postgresql", ...etc
     }),
+    baseURL: envVars.BETTER_AUTH_URL,
+    basePath: "/api/auth",
 
     emailAndPassword: {
         enabled: true,
+    },
+    
+    socialProviders: {
+        google: {
+            clientId: envVars.GOOGLE_CLIENT_ID || "",
+            clientSecret: envVars.GOOGLE_CLIENT_SECRET || "",
+            redirectURI: `${envVars.BETTER_AUTH_URL}/api/auth/callback/google`,
+        },
     },
 
     user: {
@@ -19,33 +29,23 @@ export const auth = betterAuth({
             role: {
                 type: "string",
                 required: true,
-                defaultValue: Role.SHOP_OWNER
+                defaultValue: Role.SHOP_OWNER,
             },
-
             status: {
                 type: "string",
                 required: true,
-                defaultValue: UserStatus.ACTIVE
+                defaultValue: UserStatus.ACTIVE,
             },
-
             isDeleted: {
                 type: "boolean",
                 required: true,
-                defaultValue: false
+                defaultValue: false,
             },
-
             deletedAt: {
                 type: "date",
                 required: false,
-                defaultValue: null
+                defaultValue: null,
             },
-        }
+        },
     },
-
-    // trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000"],
-
-    // advanced: {
-    //     disableCSRFCheck: true,
-    // }
-
 });

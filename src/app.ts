@@ -1,15 +1,18 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { toNodeHandler } from 'better-auth/node';
 import { IndexRoutes } from './app/routes';
 import { notFound } from './app/middlewares/notFound';
 import { globalErrorHandler } from './app/middlewares/globalErrorHandler';
 import { envVars } from './app/config/env';
+import { auth } from './app/lib/auth';
 import { PaymentController } from './app/modules/payment/payment.controller';
 
 const app: Application = express();
 
 app.post("/api/v1/payments/webhook", express.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent);
+app.all("/api/auth/*splat", toNodeHandler(auth));
 
 // parsers
 app.use(express.json());
@@ -20,7 +23,6 @@ app.use(cors({
   credentials: true,
 }));
 
-// application routes
 app.use("/api/v1", IndexRoutes);
 
 app.get('/', (req: Request, res: Response) => {

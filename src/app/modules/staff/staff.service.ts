@@ -59,7 +59,6 @@ const createStaff = async (owner: IAuthenticatedUser, payload: ICreateStaffPaylo
         name: payload.displayName ?? payload.email,
         email: payload.email,
         password,
-        role: Role.STAFF,
       },
     });
 
@@ -142,7 +141,6 @@ const createStaffAccount = async (owner: IAuthenticatedUser, payload: ICreateSta
       name: payload.displayName ?? payload.email,
       email: payload.email,
       password: payload.password,
-      role: Role.STAFF,
     },
   });
 
