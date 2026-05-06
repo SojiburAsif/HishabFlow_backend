@@ -11,6 +11,7 @@ import { OrderRoutes } from "../modules/order/order.route";
 import { ReceiptRoutes } from "../modules/receipt/receipt.route";
 import { NotificationRoutes } from "../modules/notification/notification.route";
 import { SessionRoutes } from "../modules/session/session.route";
+import { DashboardRoutes } from "../modules/dashboard/dashboard.route";
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use("/order", OrderRoutes);
 router.use("/receipt", ReceiptRoutes);
 router.use("/notifications", NotificationRoutes);
 router.use("/sessions", SessionRoutes);
+router.use("/dashboard", DashboardRoutes);
 
 
 export const IndexRoutes = router;
