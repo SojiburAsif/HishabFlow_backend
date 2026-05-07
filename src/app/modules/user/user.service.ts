@@ -1,6 +1,7 @@
 import status from "http-status";
 
 import { Role } from "../../../generated/prisma/enums";
+import { Prisma } from "../../../generated/prisma/client";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 
@@ -10,7 +11,6 @@ interface IUpdateMyProfilePayload {
     displayName?: string;
     phone?: string;
     shopName?: string;
-    shopImage?: string;
     preferredShopName?: string;
 }
 
@@ -21,25 +21,59 @@ interface IAuthenticatedUser {
     shopId?: string;
 }
 
+const userProfileInclude = {
+    shopOwnerProfile: {
+        include: { shop: true },
+    },
+    superAdminProfile: true,
+    staffProfile: {
+        include: { shop: true },
+    },
+} as const;
+
+type UserProfileWithRelations = Prisma.UserGetPayload<{
+    include: typeof userProfileInclude;
+}>;
+
+type UserProfileResponse = UserProfileWithRelations & {
+    shopImage: string | null;
+    shopName: string | null;
+    displayName: string | null;
+    preferredShopName: string | null;
+};
+
+const mapUserProfileResponse = (profile: UserProfileWithRelations | null): UserProfileResponse | null => {
+    if (!profile) {
+        return profile;
+    }
+
+    const shopOwnerShop = profile.shopOwnerProfile?.shop as { image?: string | null; shopName?: string | null } | null | undefined;
+    const staffShop = profile.staffProfile?.shop as { image?: string | null; shopName?: string | null } | null | undefined;
+
+    return {
+        ...profile,
+        shopImage: shopOwnerShop?.image ?? staffShop?.image ?? null,
+        shopName: shopOwnerShop?.shopName ?? staffShop?.shopName ?? null,
+        displayName:
+            profile.shopOwnerProfile?.displayName ??
+            profile.superAdminProfile?.displayName ??
+            profile.staffProfile?.displayName ??
+            null,
+        preferredShopName: profile.shopOwnerProfile?.preferredShopName ?? null,
+    };
+};
+
 const getMyProfile = async (user: IAuthenticatedUser) => {
     const profile = await prisma.user.findUnique({
         where: { id: user.userId },
-        include: {
-            shopOwnerProfile: {
-                include: { shop: true },
-            },
-            superAdminProfile: true,
-            staffProfile: {
-                include: { shop: true },
-            },
-        },
+        include: userProfileInclude,
     });
 
     if (!profile) {
         throw new AppError(status.NOT_FOUND, "User not found");
     }
 
-    return profile;
+    return mapUserProfileResponse(profile);
 };
 
 const normalizeSlug = (value: string) =>
@@ -95,26 +129,6 @@ const updateMyProfile = async (user: IAuthenticatedUser, payload: IUpdateMyProfi
                 },
                 include: { shop: true },
             });
-
-            if (profile.shop && payload.shopName) {
-                await tx.shop.update({
-                    where: { id: profile.shop.id },
-                    data: {
-                        ...(payload.shopName ? {
-                            shopName: payload.shopName,
-                            slug: normalizeSlug(payload.shopName),
-                        } : {}),
-                        ...(payload.shopImage ? { image: payload.shopImage } : {}),
-                    },
-                });
-            } else if (profile.shop && payload.shopImage) {
-                await tx.shop.update({
-                    where: { id: profile.shop.id },
-                    data: {
-                        image: payload.shopImage,
-                    },
-                });
-            }
         }
 
         if (currentUser.role === Role.SUPER_ADMIN) {
@@ -147,16 +161,8 @@ const updateMyProfile = async (user: IAuthenticatedUser, payload: IUpdateMyProfi
 
     return prisma.user.findUnique({
         where: { id: updatedUser.id },
-        include: {
-            shopOwnerProfile: {
-                include: { shop: true },
-            },
-            superAdminProfile: true,
-            staffProfile: {
-                include: { shop: true },
-            },
-        },
-    });
+        include: userProfileInclude,
+    }).then(mapUserProfileResponse);
 };
 
 const getAllUsers = async () => {

@@ -7,7 +7,6 @@ export const updateMyProfileSchema = z.object({
     displayName: z.string().min(1, "Display name is required").optional(),
     phone: z.string().min(6, "Phone number is required").optional(),
     shopName: z.string().min(1, "Shop name is required").optional(),
-    shopImage: z.string().url("Shop image must be a valid URL").optional(),
     preferredShopName: z.string().min(1, "Preferred shop name is required").optional(),
   }),
 });

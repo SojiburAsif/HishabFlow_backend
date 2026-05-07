@@ -145,10 +145,10 @@ const createShop = async (user: IAuthenticatedUser, payload: ICreateShopPayload)
 
   const result = await prisma.$transaction(async (tx) => {
     const shop = await tx.shop.create({
-      data: {
+        data: {
         ownerProfileId: ownerProfile.id,
         shopName: payload.shopName,
-        image: payload.image,
+          image: payload.image,
         slug: normalizeSlug(payload.shopName),
         description: payload.description,
         status: ShopStatus.ACTIVE,

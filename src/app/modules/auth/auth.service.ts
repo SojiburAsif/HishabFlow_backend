@@ -318,12 +318,24 @@ const confirmPasswordReset = async (payload: IResetPasswordPayload) => {
         throw new AppError(status.BAD_REQUEST, "Reset token has expired");
     }
 
+    const user = await prisma.user.findUnique({ where: { email: payload.email } });
+    if (!user) {
+        throw new AppError(status.NOT_FOUND, "User not found");
+    }
+
     // Try to use better-auth API to update password
     try {
         await auth.api.resetPassword({ body: { email: payload.email, token: payload.token, password: payload.password } } as any);
     } catch (err) {
-        // If better-auth reset API isn't available, attempt to update via prisma (may store unhashed password depending on adapter)
-        await prisma.user.update({ where: { email: payload.email }, data: { password: payload.password } as any });
+        // If better-auth reset API isn't available, update the linked account record instead of the User model.
+        const updatedAccounts = await prisma.account.updateMany({
+            where: { userId: user.id },
+            data: { password: payload.password },
+        });
+
+        if (updatedAccounts.count === 0) {
+            throw new AppError(status.BAD_REQUEST, "No password account record found for this user");
+        }
     }
 
     await prisma.verification.delete({ where: { id: verification.id } }).catch(() => undefined);
