@@ -18,8 +18,9 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+// Allow the frontend client origin for cross-origin requests (enables credentials)
 app.use(cors({
-  origin: envVars.BETTER_AUTH_URL,
+  origin: envVars.CLIENT_URL,
   credentials: true,
 }));
 
