@@ -11,6 +11,7 @@ interface EnvConfig {
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
     CLIENT_URL: string;
+    BASE_API_URL?: string;
     ACCESS_TOKEN_SECRET: string;
     REFRESH_TOKEN_SECRET: string;
     ACCESS_TOKEN_EXPIRES_IN: string;
@@ -63,6 +64,7 @@ const loadEnvVariables = (): EnvConfig => {
         BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET as string,
         BETTER_AUTH_URL: process.env.BETTER_AUTH_URL as string,
         CLIENT_URL: process.env.CLIENT_URL ?? 'http://localhost:3000',
+        BASE_API_URL: process.env.BASE_API_URL ?? 'http://localhost:5000',
         ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET ?? `${process.env.BETTER_AUTH_SECRET}-access`,
         REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET ?? `${process.env.BETTER_AUTH_SECRET}-refresh`,
         ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN ?? '1d',

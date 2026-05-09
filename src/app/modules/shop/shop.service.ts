@@ -90,8 +90,8 @@ const initiateShopCheckout = async (user: IAuthenticatedUser, payload: IInitiate
         },
       ],
       mode: "payment",
-      success_url: `${envVars.BETTER_AUTH_URL}/api/v1/payments/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${envVars.BETTER_AUTH_URL}/api/v1/payments/cancel`,
+      success_url: `${envVars.BASE_API_URL ?? 'http://localhost:5000'}/api/v1/payments/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${envVars.BASE_API_URL ?? 'http://localhost:5000'}/api/v1/payments/cancel`,
       metadata: {
         userId: user.userId,
         planId: payload.planId,
@@ -199,11 +199,54 @@ const getMyShop = async (user: IAuthenticatedUser) => {
     },
   });
 
-  if (!ownerProfile?.shop) {
-    return null;
+  if (!ownerProfile) {
+    throw new AppError(status.NOT_FOUND, "Shop owner profile not found");
   }
 
-  return ownerProfile.shop;
+  // If shop exists, return it
+  if (ownerProfile.shop) {
+    return ownerProfile.shop;
+  }
+
+  // Auto-create trial shop for new shop owners
+  const now = new Date();
+  const trialEndsAt = new Date(now);
+  trialEndsAt.setDate(trialEndsAt.getDate() + 14); // 14-day trial
+
+  const newShop = await prisma.$transaction(async (tx) => {
+    // Generate a shop name from user email if not set
+    const shopName = ownerProfile.preferredShopName || `Shop-${user.userId.substring(0, 8)}`;
+    
+    // Create trial shop
+    const shop = await tx.shop.create({
+      data: {
+        ownerProfileId: ownerProfile.id,
+        shopName,
+        slug: normalizeSlug(shopName),
+        status: ShopStatus.ACTIVE,
+        subscriptionStatus: SubscriptionStatus.TRIAL,
+        trialEndsAt,
+        subscriptionStartsAt: now,
+        isDashboardLocked: false,
+      },
+      include: {
+        currentPlan: true,
+        subscriptions: true,
+      },
+    });
+
+    // Update owner profile to mark onboarding as started
+    await tx.shopOwnerProfile.update({
+      where: { id: ownerProfile.id },
+      data: {
+        onboardingCompleted: false, // Will be true after first paid plan
+      },
+    });
+
+    return shop;
+  });
+
+  return newShop;
 };
 
 const updateMyShop = async (user: IAuthenticatedUser, payload: IUpdateMyShopPayload) => {

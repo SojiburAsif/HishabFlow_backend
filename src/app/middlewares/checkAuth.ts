@@ -146,6 +146,8 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                     throw new AppError(status.FORBIDDEN, 'Unauthorized access! Shop owner profile is missing.');
                 }
 
+                // Allow dashboard access even for new shop owners without a shop
+                // The shop is optional at this point - they can create one later
                 const shop = user.shopOwnerProfile.shop;
                 if (shop) {
                     const lockState = getSubscriptionLockState(shop);
@@ -153,9 +155,12 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                         await persistExpiredLock(shop.id);
                     }
 
-                    if (lockState.isLocked) {
-                        throw new AppError(status.FORBIDDEN, 'Your subscription has expired or is inactive. Please renew to access the dashboard.');
-                    }
+                    // Note: We allow access even with locked subscription
+                    // Frontend will show renewal prompts as needed
+                    // Only critical operations (like payments) enforce this at controller level
+                    // if (lockState.isLocked) {
+                    //     throw new AppError(status.FORBIDDEN, 'Your subscription has expired or is inactive. Please renew to access the dashboard.');
+                    // }
 
                     shopId = shop.id;
                 }
@@ -175,14 +180,17 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                     throw new AppError(status.FORBIDDEN, 'Unauthorized access! Staff account is not assigned to a shop.');
                 }
 
+                // Allow dashboard access even with expired subscription
+                // Frontend will show renewal prompts as needed
                 const lockState = getSubscriptionLockState(shop);
                 if (lockState.shouldPersistExpiry) {
                     await persistExpiredLock(shop.id);
                 }
 
-                if (lockState.isLocked) {
-                    throw new AppError(status.FORBIDDEN, 'Your subscription has expired or is inactive. Please renew to access the dashboard.');
-                }
+                // Don't block access based on subscription lock
+                // if (lockState.isLocked) {
+                //     throw new AppError(status.FORBIDDEN, 'Your subscription has expired or is inactive. Please renew to access the dashboard.');
+                // }
 
                 shopId = shop.id;
             }

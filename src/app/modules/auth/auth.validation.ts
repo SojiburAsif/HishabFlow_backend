@@ -35,6 +35,12 @@ export const verifyEmailOtpSchema = z.object({
     }),
 });
 
+export const resetPasswordSchema = z.object({
+    body: z.object({
+        email: z.string().email("Valid email is required"),
+    }),
+});
+
 export const zResetConfirmSchema = z.object({
     body: z.object({
         email: z.string().email("Valid email is required"),

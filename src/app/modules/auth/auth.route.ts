@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { AuthController } from "./auth.controller";
-import { loginUserSchema, registerUserSchema, resendVerificationEmailSchema, verifyEmailOtpSchema, zResetConfirmSchema } from "./auth.validation";
+import { loginUserSchema, registerUserSchema, resendVerificationEmailSchema, resetPasswordSchema, verifyEmailOtpSchema, zResetConfirmSchema } from "./auth.validation";
 
 const router = Router()
 
@@ -13,7 +13,7 @@ router.post("/verify-email-otp", validateRequest(verifyEmailOtpSchema), AuthCont
 router.post("/resend-verification-otp", validateRequest(resendVerificationEmailSchema), AuthController.resendVerificationOtp)
 router.post("/logout", AuthController.logout)
 router.get("/refresh-token", AuthController.refreshToken)
-router.post("/reset-password", validateRequest(resendVerificationEmailSchema), AuthController.requestPasswordReset)
+router.post("/reset-password", validateRequest(resetPasswordSchema), AuthController.requestPasswordReset)
 router.post("/reset-password/confirm", validateRequest(zResetConfirmSchema), AuthController.confirmPasswordReset)
 router.get("/login/google", AuthController.googleLogin);
 router.get("/google/success", AuthController.googleLoginSuccess);

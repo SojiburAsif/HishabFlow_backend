@@ -10,6 +10,7 @@ const router = Router();
 
 router.get("/me/profile", checkAuth(), UserController.getMyProfile);
 router.patch("/me/profile", checkAuth(), validateRequest(updateMyProfileSchema), UserController.updateMyProfile);
+router.get("/me/status", checkAuth(), UserController.getAccountStatus);
 router.get("/profile", checkAuth(), UserController.getMyProfile);
 router.patch("/profile", checkAuth(), validateRequest(updateMyProfileSchema), UserController.updateMyProfile);
 router.get("/", checkAuth(Role.SUPER_ADMIN), UserController.getAllUsers);

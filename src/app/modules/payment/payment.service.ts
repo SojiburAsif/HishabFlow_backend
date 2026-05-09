@@ -77,8 +77,8 @@ const initiatePayment = async (payload: IInitiatePaymentPayload, shopId: string)
                 },
             ],
             mode: "payment",
-            success_url: `${envVars.BETTER_AUTH_URL}/api/v1/payments/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${envVars.BETTER_AUTH_URL}/api/v1/payments/cancel`,
+            success_url: `${envVars.BASE_API_URL ?? 'http://localhost:5000'}/api/v1/payments/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${envVars.BASE_API_URL ?? 'http://localhost:5000'}/api/v1/payments/cancel`,
             metadata: {
                 shopId: shopId,
                 planId: payload.planId,

@@ -91,7 +91,7 @@ const getAdminDashboard = async (): Promise<DashboardResponse> => {
         recentInvoices,
         recentShops,
         topShopGroups,
-    ] = await prisma.$transaction([
+    ] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({ where: { status: UserStatus.ACTIVE, isDeleted: false } }),
         prisma.user.count({ where: { status: UserStatus.INACTIVE, isDeleted: false } }),
@@ -240,7 +240,7 @@ const getShopDashboard = async (user: DashboardUser): Promise<DashboardResponse>
         invoiceStatusRows,
         movementRows,
         currentMonthInvoices,
-    ] = await prisma.$transaction([
+    ] = await Promise.all([
         prisma.shop.findUnique({
             where: { id: shopId },
             include: {

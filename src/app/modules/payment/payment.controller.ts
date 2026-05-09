@@ -11,24 +11,18 @@ import { stripe } from "../../config/stripe.config";
 const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
   const sessionId = req.query.session_id as string | undefined;
 
-  sendResponse(res, {
-    httpStatusCode: status.OK,
-    success: true,
-    message: sessionId
-      ? "Payment completed successfully. Your shop is being activated."
-      : "Payment completed successfully.",
-    data: {
-      sessionId,
-    },
-  });
+  // Redirect to frontend payment success page with session ID
+  if (sessionId) {
+    return res.redirect(`${envVars.CLIENT_URL}/dashboard/payment-success?session_id=${sessionId}`);
+  }
+
+  // Fallback if no session ID
+  return res.redirect(`${envVars.CLIENT_URL}/dashboard`);
 });
 
 const paymentCancel = catchAsync(async (_req: Request, res: Response) => {
-  sendResponse(res, {
-    httpStatusCode: status.OK,
-    success: true,
-    message: "Payment was cancelled",
-  });
+  // Redirect to frontend cancel page
+  return res.redirect(`${envVars.CLIENT_URL}/dashboard/subscriptions?cancelled=true`);
 });
 
 const handleStripeWebhookEvent = async (req: Request, res: Response) => {
