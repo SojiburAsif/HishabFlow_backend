@@ -140,7 +140,23 @@ const listOrders = async (user: IAuthenticatedUser) => {
   const ownerProfile = await prisma.shopOwnerProfile.findUnique({ where: { userId: user.userId }, include: { shop: true } });
   if (!ownerProfile || !ownerProfile.shop) throw new AppError(status.BAD_REQUEST, "Shop not found for owner");
 
-  const invoices = await prisma.invoice.findMany({ where: { shopId: ownerProfile.shop.id }, include: { items: true } });
+  const invoices = await prisma.invoice.findMany({
+    where: { shopId: ownerProfile.shop.id },
+    include: {
+      items: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
   return invoices;
 };
 

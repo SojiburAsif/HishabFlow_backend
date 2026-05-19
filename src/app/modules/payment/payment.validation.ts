@@ -12,6 +12,6 @@ export const initiatePaymentSchema = z.object({
 export const confirmPaymentSchema = z.object({
   body: z.object({
     paymentReference: z.string().min(1, "Payment reference is required"),
-    planId: z.string().min(1, "Plan ID is required"),
+    planId: z.string().min(1, "Plan ID is required").optional(),
   }),
 });
