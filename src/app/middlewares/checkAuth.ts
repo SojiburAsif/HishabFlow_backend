@@ -14,6 +14,9 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
     try {
         const sessionToken = CookieUtils.getCookie(req, "better-auth.session_token");
         const accessToken = CookieUtils.getCookie(req, 'accessToken');
+        const bearerToken = req.headers.authorization?.startsWith('Bearer ')
+            ? req.headers.authorization.slice('Bearer '.length)
+            : undefined;
 
         let authenticatedUser:
             | {
@@ -240,8 +243,9 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
             }
         }
 
-        if (!authenticatedUser && accessToken) {
-            const verifiedToken = jwtUtils.verifyToken(accessToken, envVars.ACCESS_TOKEN_SECRET);
+        if (!authenticatedUser && (accessToken || bearerToken)) {
+            const tokenToVerify = accessToken || bearerToken;
+            const verifiedToken = jwtUtils.verifyToken(tokenToVerify, envVars.ACCESS_TOKEN_SECRET);
 
             if (!verifiedToken.success || !verifiedToken.data) {
                 throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! Invalid access token.');
